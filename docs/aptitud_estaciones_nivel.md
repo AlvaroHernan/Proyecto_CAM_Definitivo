@@ -61,9 +61,9 @@ Con las dos estaciones de prioridad 1 se puede montar y validar el primer modelo
 
 ## Próximos pasos
 
-- [ ] Llevar La Lindosa y Los Micos a resolución horaria (nivel promedio, lluvia sumada), porque 2017-2019 es horario y 2020-2025 es cada 5 min.
-- [ ] Rellenar huecos cortos (hasta 6 h) por interpolación y marcar los largos para excluirlos de las ventanas de entrenamiento.
+- [x] Llevar La Lindosa y Los Micos a resolución horaria (nivel promedio, lluvia sumada), porque 2017-2019 es horario y 2020-2025 es cada 5 min.
+- [x] Rellenar huecos cortos por interpolación y marcar los largos para excluirlos de las ventanas de entrenamiento (La Lindosa y Los Micos, ver [`data/clean/`](../data/clean/README.md)).
 - [ ] Confirmar con el operador si hubo cambio de sensor o de referencia en Los Micos (2021-2022), Las Juntas y San Benito.
-- [ ] Aplicar a 2017-2019 el filtro de "sensor pegado" del PDF de observaciones, que aún no se ha aplicado.
+- [x] Aplicar a 2017-2019 el filtro de "sensor pegado" del PDF de observaciones (hecho para La Lindosa y Los Micos; falta en las demás estaciones).
 - [ ] Definir el horizonte de predicción (por ejemplo 6, 12 o 24 h) y separar 2025 como año de prueba.
 - [ ] Identificar qué estaciones meteorológicas están aguas arriba de cada estación de nivel, para usar su lluvia como predictor.

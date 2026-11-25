@@ -25,3 +25,7 @@ Se generan con:
 ```
 python src/consolidar_estaciones.py
 ```
+
+## Series horarias (La Lindosa y Los Micos)
+
+`La_Lindosa/La_Lindosa_horario.csv` y `Los_Micos/Los_Micos_horario.csv` son un paso intermedio: la serie llevada a **un dato por hora** (nivel y temperatura promediados, lluvia sumada), con una fila por cada hora y el filtro de sensor pegado aplicado, pero **todavía con huecos**. Las genera [`notebooks/01_resolucion_horaria.ipynb`](../../notebooks/01_resolucion_horaria.ipynb). Las series ya imputadas y listas para modelar están en [`data/clean/`](../clean/).
