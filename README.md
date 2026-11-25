@@ -148,7 +148,8 @@ El repositorio está empezando. Esta es una organización propuesta para ir agre
 ```
 ├── data/
 │   ├── raw/            # Datos originales sin modificar
-│   └── processed/      # Datos limpios y validados (.csv)
+│   ├── processed/      # Datos consolidados por estación (.csv)
+│   └── clean/          # Series horarias limpias e imputadas, listas para modelar
 ├── notebooks/          # Notebooks de exploración, limpieza y modelado
 ├── src/                # Scripts de Python reutilizables
 ├── models/             # Modelos entrenados
