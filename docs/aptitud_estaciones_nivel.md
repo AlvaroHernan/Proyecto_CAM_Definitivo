@@ -1,6 +1,6 @@
 # Estaciones con nivel del río y aptitud para predicción
 
-25 de noviembre de 2026 · Versión editable: [documento en Claude](https://claude.ai/artifact/ADXqFpS1Ujgx7FUG1bLvHj)
+25 de noviembre de 2026 · 
 
 Seis de las nueve estaciones miden nivel del río, pero solo **La Lindosa y Los Micos** tienen series lo bastante largas y continuas para empezar a entrenar modelos de predicción ya: unos 8 años (2018-2025) con más del 90 % de las horas con dato y tramos sin cortes de más de 15 meses.
 
