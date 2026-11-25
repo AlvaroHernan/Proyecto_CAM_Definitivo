@@ -29,7 +29,7 @@ Para cada variable `X` (`nivel_m`, `temperatura_c`, `lluvia_mm`):
 
 Además:
 
-- `fuente`: `MAIGRAI` (2017 - feb 2020, dato horario), `MeerKAD` (feb 2020 - 2025, agregado desde 5 min) o `sin_registro` (hora sin ningún dato).
+- `fuente`: `MAIGRAI` (2017 - feb 2020, dato horario), `MeerKAD` (feb 2020 - 2025, agregado desde 5 min) `MeerKAD+MAIGRAI` (una sola hora, La Lindosa 2020-02-26 14:00, en el cambio de sistema; se usó el dato MeerKAD) o `sin_registro` (hora sin ningún dato).
 - `nivel_pegado`: `True` si el nivel original de esa hora se anuló por "sensor pegado" (ver paso 1).
 
 ### Etiquetas de calidad
@@ -42,12 +42,14 @@ Además:
 | `BAJA` | Spline cúbico de último recurso | No (no se necesitó: 0 %) |
 | `SIN_DATO` | No se pudo rellenar | No (no quedó ninguno: 0 %) |
 
-Para quedarse solo con lo confiable:
+Para usar solo lo confiable sin romper la continuidad horaria:
 
 ```python
 import pandas as pd
 df = pd.read_csv("data/clean/La_Lindosa/La_Lindosa_horario_limpio.csv", parse_dates=["fecha_hora"])
-confiable = df[df.nivel_m_calidad.isin(["REAL", "ALTA"])]
+# No borrar filas: se pegarían horas separadas por un hueco. Mejor dejar vacío lo no confiable
+# y descartar después las ventanas de entrenamiento que tengan algún vacío.
+df["nivel_confiable"] = df.nivel_m.where(df.nivel_m_calidad.isin(["REAL", "ALTA"]))
 ```
 
 ## Resultado
@@ -99,7 +101,7 @@ Cascada del artículo: REAL → interpolación lineal (ALTA) → promedio de la 
 
 ### 4. EDA y correlación — [`04_eda_correlacion.ipynb`](../../notebooks/04_eda_correlacion.ipynb)
 
-Hallazgos principales (calculados solo con valores REAL):
+Hallazgos principales. El nivel y la temperatura se analizan solo con valores REAL. **Excepción:** los totales de lluvia (anuales, mensuales) y las ventanas de lluvia acumulada usan la lluvia final, que incluye valores imputados (5,5 % en La Lindosa y 8,3 % en Los Micos), porque una suma con horas vacías quedaría cortada; la lluvia hora a hora de la matriz de correlación sí es solo REAL.
 
 - **Lluvia bimodal**: picos en marzo y noviembre; julio-agosto es lo más seco.
 - **Correlación lluvia-nivel hora a hora débil** (r ≈ 0,1), igual que en el artículo. Con **lluvia acumulada de las 24-168 h previas sube a r ≈ 0,25-0,31**. El cambio de nivel responde a la lluvia de la misma hora o la anterior (respuesta rápida). Para predecir, el modelo debe recibir acumulados de lluvia de varias ventanas, no solo la lluvia actual.
