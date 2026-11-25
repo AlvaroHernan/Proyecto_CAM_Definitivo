@@ -15,7 +15,9 @@ Los resultados y las decisiones tomadas están resumidos en [`data/clean/README.
 
 ## Modelos de predicción de nivel
 
-Un notebook por estación, con la misma estructura. Cada uno entrena **SARIMAX, XGBoost, LSTM y Prophet**, los compara con la **persistencia** (suponer que el nivel no cambia) en el año de prueba 2025 y termina diciendo cuál modelo conviene en esa estación. El horizonte principal es **6 horas** (también se evalúan 1, 3 y 12 h); la justificación está en la sección 2 de cada notebook.
+Un notebook por estación, con la misma estructura. Cada uno entrena **SARIMAX, XGBoost, LSTM y Prophet**, los compara con la **persistencia** (suponer que el nivel no cambia) en el año de prueba 2025, revisa con una prueba t pareada si las diferencias son significativas y termina diciendo cuál modelo conviene en esa estación. El horizonte principal es **6 horas** (también se evalúan 1, 3 y 12 h); la justificación está en la sección 2 de cada notebook.
+
+El proceso completo, las métricas y los resultados están explicados en [`models/README.md`](../models/README.md).
 
 | Notebook | Estación | Lee | Escribe |
 |---|---|---|---|
