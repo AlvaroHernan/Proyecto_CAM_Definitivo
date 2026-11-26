@@ -16,6 +16,10 @@ Tablero web hecho con **Streamlit** que integra el modelo predictivo (**XGBoost 
 - **Modelo y umbrales:** desempeño del modelo, niveles de aviso y reglas de activación.
 - **Administración** (barra lateral): cambiar los umbrales y controlar la simulación.
 
+Usa los **colores institucionales de CORHUILA** (verde, blanco y negro) y su logo. El verde de la marca
+va en líneas, botones y controles; los bloques de color llenos se reservan para los avisos, que además
+siempre llevan ícono y palabra (● Normal, ▲ Amarillo...), para no confundir la marca con un estado.
+
 Tiene **un solo perfil, el de administrador**, protegido con contraseña. No envía notificaciones
 (correo, Telegram, etc.): los avisos se ven solo en el tablero.
 
@@ -74,14 +78,18 @@ nuevos; el resto del tablero queda igual.
 **3. Instalar las librerías** (solo la primera vez):
 
 ```
-pip install -r dashboard/requirements.txt
+python -m pip install -r dashboard/requirements.txt
 ```
 
 **4. Abrir el tablero:**
 
 ```
-streamlit run dashboard/app.py
+python -m streamlit run dashboard/app.py
 ```
+
+Use `python -m streamlit` y no solo `streamlit`: así funciona también en Windows, donde a veces
+aparece el error *"streamlit no se reconoce como un comando"*. Si `python` tampoco se reconoce,
+pruebe con `py -m streamlit run dashboard/app.py`.
 
 Se abre solo en el navegador (si no, entre a <http://localhost:8501>).
 
@@ -116,7 +124,8 @@ la configuración de la app (*Sharing*).
 | [`entrenar_modelos.py`](entrenar_modelos.py) | Vuelve a entrenar y guardar los modelos. |
 | `modelos/` | Modelos XGBoost entrenados (`.json`) y sus datos de apoyo (`_info.json`). |
 | [`requirements.txt`](requirements.txt) | Librerías necesarias. |
-| `../.streamlit/config.toml` | Colores del tablero. |
+| `assets/logo_corhuila.png` | Logo de CORHUILA. |
+| `../.streamlit/config.toml` | Colores del tablero (verde, blanco y negro de CORHUILA). |
 | `../.streamlit/secrets.toml.ejemplo` | Ejemplo para poner la contraseña. |
 
 ## El modelo

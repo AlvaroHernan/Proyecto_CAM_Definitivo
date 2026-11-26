@@ -21,9 +21,13 @@ from plotly.subplots import make_subplots
 sys.path.insert(0, str(Path(__file__).resolve().parent))   # para encontrar motor.py desde cualquier carpeta
 import motor  # noqa: E402
 
-st.set_page_config(page_title="Alertas río Las Ceibas", page_icon="🌊", layout="wide")
+LOGO = Path(__file__).resolve().parent / "assets" / "logo_corhuila.png"
+st.set_page_config(page_title="Alertas río Las Ceibas · CORHUILA", page_icon=str(LOGO), layout="wide")
 
-AZUL, GRIS_TEXTO, GRIS_LINEA = "#1F4E79", "#52606D", "#CBD2D9"
+# Colores institucionales de CORHUILA (tomados del logo). El verde de la marca se usa solo en
+# líneas, botones y controles; los bloques de color llenos quedan reservados para los avisos.
+VERDE_CORHUILA, NEGRO_CORHUILA = "#009540", "#1D1D1B"
+AZUL, GRIS_TEXTO, GRIS_LINEA = NEGRO_CORHUILA, "#52606D", "#CBD2D9"
 AZUL_LLUVIA = "#6C9BD2"
 INICIO_SIMULACION = pd.Timestamp("2024-11-13 00:00")   # justo antes de unas crecientes de noviembre de 2024
 
@@ -58,8 +62,45 @@ def clave_admin():
         return "admin"   # clave por defecto si no se configuró ninguna (ver README)
 
 
+def estilos():
+    """Detalles visuales de la marca que el tema de Streamlit no cubre."""
+    st.markdown(f"""
+<style>
+  h1, h2, h3 {{ color: {NEGRO_CORHUILA}; }}
+  [data-testid="stSidebar"] {{ border-right: 4px solid {VERDE_CORHUILA}; }}
+  [data-testid="stSidebar"] h2 {{ font-size: 1.15rem; }}
+  .regla-corhuila {{ height: 5px; background: {VERDE_CORHUILA}; border-radius: 3px; margin: 2px 0 14px 0; }}
+  .pie-corhuila {{ color: {GRIS_TEXTO}; font-size: 0.85rem; border-top: 2px solid {VERDE_CORHUILA};
+                   padding-top: 8px; margin-top: 28px; }}
+</style>""", unsafe_allow_html=True)
+
+
+def encabezado(subtitulo):
+    """Logo de CORHUILA, título y una línea verde, como en el logo."""
+    c1, c2 = st.columns([1, 9], vertical_alignment="center")
+    c1.image(str(LOGO), width=96)
+    c2.markdown(f"<h1 style='margin:0;padding:0;color:{NEGRO_CORHUILA}'>Alertas tempranas · río Las Ceibas</h1>"
+                f"<div style='color:{GRIS_TEXTO};font-size:0.95rem'>{html.escape(subtitulo)}</div>",
+                unsafe_allow_html=True)
+    st.markdown("<div class='regla-corhuila'></div>", unsafe_allow_html=True)
+
+
+def pie():
+    st.markdown("<div class='pie-corhuila'>Corporación Universitaria del Huila · CORHUILA · Facultad de Ingeniería · "
+                "Grupo de investigación INPROTI · Semillero E-Logic</div>", unsafe_allow_html=True)
+
+
 def pantalla_acceso():
-    st.title("🌊 Alertas tempranas · río Las Ceibas")
+    _, centro, _ = st.columns([1, 2, 1])
+    with centro:
+        st.image(str(LOGO), width=200)
+        st.markdown(f"<h1 style='color:{NEGRO_CORHUILA};margin-bottom:0'>Alertas tempranas · río Las Ceibas</h1>"
+                    "<div class='regla-corhuila'></div>", unsafe_allow_html=True)
+        acceso_formulario()
+    pie()
+
+
+def acceso_formulario():
     st.write("Ingrese la contraseña de administrador para entrar al tablero.")
     with st.form("acceso"):
         clave = st.text_input("Contraseña", type="password")
@@ -103,6 +144,7 @@ def avisos(estacion):
 # Barra lateral: simulación y administración
 # =====================================================================
 def barra_lateral(primera, ultima):
+    st.sidebar.image(str(LOGO), width=130)
     st.sidebar.header("⏱️ Simulación en tiempo real")
     st.sidebar.caption("Reproduce los datos históricos como si llegaran en vivo, una hora a la vez.")
 
@@ -432,6 +474,7 @@ def iniciar_estado():
 
 def main():
     iniciar_estado()
+    estilos()
     if not st.session_state.autenticado:
         pantalla_acceso()
         return
@@ -453,9 +496,8 @@ def main():
             st.session_state.t = siguiente
         t = st.session_state.t
 
-        st.title("🌊 Alertas tempranas · río Las Ceibas")
         estado = "▶ reproduciendo" if st.session_state.reproduciendo else "⏸ en pausa"
-        st.caption(f"Simulación con datos históricos ({estado}). Estaciones La Lindosa y Los Micos · "
+        encabezado(f"Simulación con datos históricos ({estado}). Estaciones La Lindosa y Los Micos · "
                    f"modelo XGBoost a {motor.HORIZONTE} h · perfil administrador.")
 
         resumenes = [resumen_estacion(e, t) for e in motor.ESTACIONES]
@@ -471,6 +513,7 @@ def main():
             vista_bitacora(t)
         with tab3:
             vista_modelo()
+        pie()
 
     tablero()
 
