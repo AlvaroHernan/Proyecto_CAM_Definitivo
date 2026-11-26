@@ -1,4 +1,4 @@
-# dashboard · Alertas tempranas del río Las Ceibas (Actividad 3.2)
+# dashboard · Alertas tempranas del río Las Ceibas (Actividades 3.2 y 3.3)
 
 Tablero web hecho con **Streamlit** que integra el modelo predictivo (**XGBoost a 6 horas**) y muestra
 **avisos en tiempo real** para las estaciones **La Lindosa** y **Los Micos**.
@@ -14,7 +14,10 @@ Tablero web hecho con **Streamlit** que integra el modelo predictivo (**XGBoost 
   punteado) y de la lluvia horaria, en ventanas de 72 horas, 7 días o 30 días.
 - **Bitácora de avisos:** lista de los avisos (y de las fallas de datos) de los últimos días.
 - **Modelo y umbrales:** desempeño del modelo, niveles de aviso y reglas de activación.
-- **Administración** (barra lateral): cambiar los umbrales y controlar la simulación.
+- **Administración** (barra lateral): cambiar los umbrales (con historial de cambios descargable) y
+  controlar la simulación.
+- **Descarga** de los datos, pronósticos y avisos de la ventana que se está viendo, en CSV y con la versión
+  del modelo.
 
 Usa los **colores institucionales de CORHUILA** (verde, blanco y negro) y su logo. El verde de la marca
 va en líneas, botones y controles; los bloques de color llenos se reservan para los avisos, que además
@@ -124,6 +127,8 @@ la configuración de la app (*Sharing*).
 | [`entrenar_modelos.py`](entrenar_modelos.py) | Vuelve a entrenar y guardar los modelos. |
 | `modelos/` | Modelos XGBoost entrenados (`.json`) y sus datos de apoyo (`_info.json`). |
 | [`requirements.txt`](requirements.txt) | Librerías necesarias. |
+| [`../tests/test_motor.py`](../tests/test_motor.py) | Pruebas automáticas del motor (pytest). |
+| [`../tests/navegador/pruebas_funcionales.js`](../tests/navegador/pruebas_funcionales.js) | Pruebas funcionales en el navegador (Playwright). |
 | `assets/logo_corhuila.png` | Logo de CORHUILA. |
 | `../.streamlit/config.toml` | Colores del tablero (verde, blanco y negro de CORHUILA). |
 | `../.streamlit/secrets.toml.ejemplo` | Ejemplo para poner la contraseña. |
@@ -136,7 +141,10 @@ mismos atributos, mismos hiperparámetros y misma partición (entrena con 2018-2
 Predice el cambio de nivel en las próximas 6 horas. El modelo guardado da un error típico (RMSE) en 2025
 de 6,2 cm en La Lindosa y 3,7 cm en Los Micos, igual a lo reportado en la Actividad 2.
 
-El **rango probable** que se muestra junto al pronóstico cubre el 90 % de los errores del modelo en 2024.
+El **rango probable** que se muestra junto al pronóstico cubre el 90 % de los errores del modelo en 2024,
+calculado aparte para horas **normales** y horas **activas** (con lluvia en las últimas 6 horas o con el río a
+10 cm o más sobre su base). Con este ajuste de la Actividad 3.3, en 2025 cubrió el 87 % de los casos en La
+Lindosa (antes, con un solo rango, el 81 %) y el 93 % en Los Micos.
 El pronóstico **no incluye lluvia futura**: una creciente causada por lluvia que todavía no ha caído no
 se puede anticipar.
 
@@ -149,9 +157,25 @@ python dashboard/entrenar_modelos.py
 Si el tablero no encuentra los modelos, o no dan el resultado esperado (por ejemplo, con otra versión de
 XGBoost), los entrena solo al arrancar.
 
+## Pruebas (Actividad 3.3)
+
+**Pruebas automáticas del motor** (16 pruebas; tardan unos segundos):
+
+```
+python -m pip install pytest
+python -m pytest tests -v
+```
+
+Verifican que el modelo guardado es el evaluado, que el pronóstico no usa datos futuros, la cobertura del
+rango probable y las reglas de avisos (observado, pronosticado, escalamiento, histéresis y sin dato).
+
+**Pruebas funcionales en el navegador** (25 casos: acceso, simulación, umbrales, vistas, celular de 360 px...):
+con el tablero abierto, ejecutar `node tests/navegador/pruebas_funcionales.js` (necesita Node.js y Playwright;
+instrucciones al inicio del archivo).
+
 ## Limitaciones
 
 - Los umbrales son **provisionales**; los oficiales los define la CAM con la OGRD y Las Ceibas E.S.P.
 - El "tiempo real" es una **simulación** con datos históricos.
-- Los cambios de umbrales hechos desde la barra lateral duran mientras la sesión esté abierta.
+- Los cambios de umbrales hechos desde la barra lateral, y su historial, duran mientras la sesión esté abierta.
 - Es un aviso técnico de apoyo a la decisión; **no reemplaza la alerta oficial**.

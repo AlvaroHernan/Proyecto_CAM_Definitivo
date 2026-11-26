@@ -5,6 +5,16 @@
   "horas_entrenamiento": 50798,
   "error_p05_m": -0.06846813400536779,
   "error_p95_m": 0.06282684263288965,
+  "rango_por_condicion": {
+    "normal": [
+      -0.032592059820517855,
+      0.04018965904004871
+    ],
+    "activo": [
+      -0.10938871980458498,
+      0.11629061228632924
+    ]
+  },
   "atributos": [
     "nivel_sobre_base7d",
     "cambio_1h",
