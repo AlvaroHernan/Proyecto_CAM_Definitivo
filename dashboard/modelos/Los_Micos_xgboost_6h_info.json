@@ -1,0 +1,30 @@
+{
+  "estacion": "Los_Micos",
+  "horizonte_h": 6,
+  "arboles": 106,
+  "horas_entrenamiento": 49906,
+  "error_p05_m": -0.05079585576141257,
+  "error_p95_m": 0.040130763896554636,
+  "atributos": [
+    "nivel_sobre_base7d",
+    "cambio_1h",
+    "cambio_2h",
+    "cambio_3h",
+    "cambio_6h",
+    "cambio_12h",
+    "cambio_24h",
+    "lluvia_1h",
+    "lluvia_3h",
+    "lluvia_6h",
+    "lluvia_12h",
+    "lluvia_24h",
+    "lluvia_72h",
+    "lluvia_168h",
+    "sin_hora",
+    "cos_hora",
+    "sin_dia",
+    "cos_dia"
+  ],
+  "control_fecha": "2024-01-01 00:00:00",
+  "control_cambio_m": 0.004786617588251829
+}

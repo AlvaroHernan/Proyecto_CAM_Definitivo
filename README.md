@@ -65,7 +65,7 @@ Investigación aplicada con enfoque **mixto** y diseño secuencial explicativo:
 
 ### Fase 3: Dashboard de alertas
 - Levantar requisitos, diseñar la interfaz (UI/UX) y la arquitectura técnica.
-- Desarrollar el dashboard (**Power BI**) integrando el modelo y las alertas en tiempo real.
+- Desarrollar el dashboard integrando el modelo y las alertas en tiempo real. La propuesta planteaba **Power BI**; se construyó en **Streamlit** (Python), ver [`dashboard/`](dashboard/README.md).
 - Realizar pruebas funcionales y de usabilidad, ajustes finales y despliegue.
 
 ### Análisis estadístico
@@ -153,7 +153,7 @@ El repositorio está empezando. Esta es una organización propuesta para ir agre
 ├── notebooks/          # Notebooks de exploración, limpieza y modelado
 ├── src/                # Scripts de Python reutilizables
 ├── models/             # Modelos entrenados
-├── dashboard/          # Archivos del dashboard (Power BI)
+├── dashboard/          # Archivos del dashboard (Streamlit)
 ├── docs/               # Informes, protocolos y documentación
 └── README.md
 ```
@@ -162,7 +162,7 @@ El repositorio está empezando. Esta es una organización propuesta para ir agre
 
 - **Python** para la limpieza, validación y modelado de datos (notebooks y scripts).
 - **Redes neuronales** (LSTM, CNN-LSTM) para la predicción de caudales y niveles.
-- **Power BI** para el dashboard de indicadores de riesgo.
+- **Streamlit** para el dashboard de alertas (la propuesta planteaba Power BI).
 
 ## Referencias principales
 
