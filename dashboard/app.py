@@ -2,7 +2,7 @@
 
 Ejecutar desde la carpeta raíz del repositorio:
 
-    streamlit run dashboard/app.py
+    python -m streamlit run dashboard/app.py
 
 No hay conexión en vivo con las estaciones, así que el "tiempo real" se simula
 reproduciendo la serie histórica limpia (data/clean) hora por hora.
