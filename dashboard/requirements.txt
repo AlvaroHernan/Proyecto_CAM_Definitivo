@@ -1,0 +1,6 @@
+# Librerías que necesita el dashboard (también las usa Streamlit Community Cloud)
+streamlit>=1.50
+pandas>=2.0
+numpy>=1.26
+xgboost>=3.0
+plotly>=5.20

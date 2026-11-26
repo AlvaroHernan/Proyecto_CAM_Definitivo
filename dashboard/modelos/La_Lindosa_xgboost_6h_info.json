@@ -1,0 +1,30 @@
+{
+  "estacion": "La_Lindosa",
+  "horizonte_h": 6,
+  "arboles": 482,
+  "horas_entrenamiento": 50798,
+  "error_p05_m": -0.06846813400536779,
+  "error_p95_m": 0.06282684263288965,
+  "atributos": [
+    "nivel_sobre_base7d",
+    "cambio_1h",
+    "cambio_2h",
+    "cambio_3h",
+    "cambio_6h",
+    "cambio_12h",
+    "cambio_24h",
+    "lluvia_1h",
+    "lluvia_3h",
+    "lluvia_6h",
+    "lluvia_12h",
+    "lluvia_24h",
+    "lluvia_72h",
+    "lluvia_168h",
+    "sin_hora",
+    "cos_hora",
+    "sin_dia",
+    "cos_dia"
+  ],
+  "control_fecha": "2024-01-04 14:00:00",
+  "control_cambio_m": -0.014312539249658585
+}

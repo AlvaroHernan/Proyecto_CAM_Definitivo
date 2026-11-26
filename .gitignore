@@ -11,3 +11,6 @@ venv/
 # Sistema operativo
 .DS_Store
 Thumbs.db
+
+# Contraseñas de Streamlit (nunca se suben al repositorio)
+.streamlit/secrets.toml
