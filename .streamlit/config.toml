@@ -1,11 +1,12 @@
-# Tema del dashboard (dashboard/app.py). El rojo, naranja, amarillo y verde se reservan
-# para los niveles de aviso, así que los botones usan el azul de la interfaz.
+# Tema del dashboard (dashboard/app.py) con los colores de CORHUILA: verde, blanco y negro.
+# El verde de la marca solo se usa en botones y controles; los bloques de color llenos
+# (verde, amarillo, naranja, rojo) quedan reservados para los niveles de aviso.
 [theme]
 base = "light"
-primaryColor = "#1F4E79"
+primaryColor = "#009540"
 backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#F2F4F7"
-textColor = "#1F2933"
+secondaryBackgroundColor = "#F4F6F4"
+textColor = "#1D1D1B"
 
 [server]
 headless = true
