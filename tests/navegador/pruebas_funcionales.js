@@ -174,4 +174,7 @@ async function login(pg, clave){ await pg.getByLabel('Contraseña').fill(clave);
   rec('CP-21','Sin errores en la consola del navegador', errores.length===0, errores.length? errores.slice(0,3).join(' / ') : 'Ningún error registrado', 0);
   require('fs').writeFileSync(`${OUT}/resultados.json`, JSON.stringify(res,null,1));
   await b.close();
+  const fallas = res.filter(r => !r.ok).length;
+  console.log(`${res.length - fallas} de ${res.length} casos pasan`);
+  if (fallas) process.exitCode = 1;   // para que una automatización detecte las fallas
 })().catch(e=>{ console.error('ERROR', e); require('fs').writeFileSync(`${OUT}/resultados.json`, JSON.stringify(res,null,1)); process.exit(1); });

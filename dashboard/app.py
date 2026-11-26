@@ -171,6 +171,12 @@ def ir_a_fecha(primera, ultima):
     st.session_state.sincronizar_selector = True
 
 
+def selector_editado():
+    """El usuario eligió otra fecha u hora: se pausa y no se sobrescribe su elección."""
+    st.session_state.reproduciendo = False
+    st.session_state.sincronizar_selector = False
+
+
 def cambiar_reproduccion(valor):
     st.session_state.reproduciendo = valor
     st.session_state.sincronizar_selector = True
@@ -234,8 +240,9 @@ def barra_lateral(primera, ultima):
     st.sidebar.caption("Reproduce los datos históricos como si llegaran en vivo, una hora a la vez.")
 
     st.sidebar.date_input("Fecha de inicio", key="fecha_ir", min_value=primera.date(), max_value=ultima.date(),
-                          format="DD/MM/YYYY")
-    st.sidebar.selectbox("Hora de inicio", range(24), key="hora_ir", format_func=lambda h: f"{h:02d}:00")
+                          format="DD/MM/YYYY", on_change=selector_editado)
+    st.sidebar.selectbox("Hora de inicio", range(24), key="hora_ir", format_func=lambda h: f"{h:02d}:00",
+                         on_change=selector_editado)
     st.sidebar.button("Ir a esa fecha", width="stretch", on_click=ir_a_fecha, args=(primera, ultima))
 
     c1, c2, c3 = st.sidebar.columns(3)
@@ -478,7 +485,8 @@ def exportar_pronosticos(estacion, t, horas_atras):
         "rango_max_m": pron.rango_max.loc[desde:t].round(3).to_numpy(),
         "condicion_rango": pron.condicion.loc[desde:t].to_numpy(),
         "confianza_normal": pron.confianza_normal.loc[desde:t].to_numpy(),
-        "aviso": [motor.NIVELES[c][0] for c in a.estado.loc[desde:t]],
+        "aviso_vigente": [motor.NIVELES[c][0] for c in a.aviso.loc[desde:t]],
+        "estado_mostrado": [motor.NIVELES[c][0] for c in a.estado.loc[desde:t]],   # «Sin dato» si falla la estación
         "tipo_aviso": a.tipo.loc[desde:t].to_numpy(),
         "version_modelo": info.get("version", ""),
     })
