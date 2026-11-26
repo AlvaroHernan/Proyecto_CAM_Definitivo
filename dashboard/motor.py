@@ -5,6 +5,7 @@ Reproduce exactamente la preparación de datos y los atributos de XGBoost de los
 notebooks 05 y 06 (ver models/README.md).
 """
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -29,7 +30,9 @@ SEMILLA = 42
 # ---------------- Niveles de aviso (Informe 3.1, tablas 7 y 12) ----------------
 # código: (nombre, color de fondo, color de texto, ícono)
 NIVELES = {
-    -1: ("Sin dato", "#8A949E", "#FFFFFF", "○"),
+    # Gris más oscuro que el #8A949E del Informe 3.1: con texto blanco este daba un contraste de
+    # 3,1:1 y WCAG 2.1 AA pide 4,5:1 (prueba de accesibilidad de la Actividad 3.3). El nuevo da 4,8:1.
+    -1: ("Sin dato", "#69737C", "#FFFFFF", "○"),
     0: ("Normal", "#2E7D32", "#FFFFFF", "●"),
     1: ("Amarillo", "#F2B705", "#1F2933", "▲"),
     2: ("Naranja", "#E8710A", "#1F2933", "▲"),
@@ -54,6 +57,11 @@ UMBRALES_PROVISIONALES = {
 MARGEN_CIERRE = 0.05     # m; el aviso baja cuando todo queda por debajo de (umbral - margen)...
 HORAS_CIERRE = 3         # ...durante 3 horas seguidas
 HORAS_SIN_DATO = 2       # más de 2 h sin dato válido = "Sin dato"
+
+# Rango probable por condición (RF-08, ajuste de la Actividad 3.3). En 2025 el rango único de
+# La Lindosa cubrió solo el 81 % de los errores; separarlo en horas "normales" y "activas"
+# (con lluvia en las últimas 6 h o con el río a 10 cm o más sobre su base) lo lleva al 87 %.
+SOBRE_BASE_ACTIVO = 0.10     # m
 
 
 # =====================================================================
@@ -99,6 +107,27 @@ def ruta_info(estacion):
     return CARPETA_MODELOS / f"{estacion}_xgboost_{HORIZONTE}h_info.json"
 
 
+def condicion_activa(atributos):
+    """Horas "activas": con lluvia en las últimas 6 h o con el río a 10 cm o más sobre su base."""
+    return (atributos["lluvia_6h"] > 0) | (atributos["nivel_sobre_base7d"] >= SOBRE_BASE_ACTIVO)
+
+
+def rango_por_condicion(error, atributos):
+    """Percentiles 5 y 95 del error, por separado para horas normales y activas."""
+    activo = condicion_activa(atributos.loc[error.index])
+    return {"normal": [float(error[~activo].quantile(0.05)), float(error[~activo].quantile(0.95))],
+            "activo": [float(error[activo].quantile(0.05)), float(error[activo].quantile(0.95))]}
+
+
+def version_modelo(estacion, modelo=None):
+    """Identificador corto del modelo: nombre del archivo y huella (hash) de su contenido."""
+    if ruta_modelo(estacion).exists() and modelo is None:
+        contenido = ruta_modelo(estacion).read_bytes()
+    else:
+        contenido = bytes(modelo.save_raw("json"))
+    return f"{ruta_modelo(estacion).stem} · {hashlib.sha256(contenido).hexdigest()[:10]}"
+
+
 def entrenar(estacion, datos=None):
     """Entrena XGBoost igual que en los notebooks: 2018-2023 entrena, 2024 valida (parada temprana).
 
@@ -135,6 +164,7 @@ def entrenar(estacion, datos=None):
         "horas_entrenamiento": int(ent.sum()),
         "error_p05_m": float(error_val.quantile(0.05)),
         "error_p95_m": float(error_val.quantile(0.95)),
+        "rango_por_condicion": rango_por_condicion(error_val, atributos),
         "atributos": list(atributos.columns),
     }
     # Predicción de control: al cargar el modelo se verifica que dé lo mismo
@@ -156,11 +186,14 @@ def cargar_modelo(estacion, datos=None):
             datos = cargar_serie(estacion) if datos is None else datos
             muestra = calcular_atributos(datos)[info["atributos"]].loc[[pd.Timestamp(info["control_fecha"])]]
             if abs(modelo.predict(xgb.DMatrix(muestra))[0] - info["control_cambio_m"]) < 1e-4:
+                info["version"] = version_modelo(estacion)
                 return modelo, info
         except Exception:
             pass
     # Si no hay modelo guardado, está dañado o no da la predicción de control, se entrena (unos segundos)
-    return entrenar(estacion, datos)
+    modelo, info = entrenar(estacion, datos)
+    info["version"] = version_modelo(estacion, modelo) + " (reentrenado al arrancar)"
+    return modelo, info
 
 
 def pronosticar(datos, modelo, info):
@@ -175,8 +208,16 @@ def pronosticar(datos, modelo, info):
     cambio = modelo.predict(xgb.DMatrix(atributos))
     p = pd.DataFrame(index=datos.index)
     p["pronostico"] = datos.nivel + cambio
-    p["rango_min"] = p.pronostico + info["error_p05_m"]
-    p["rango_max"] = p.pronostico + info["error_p95_m"]
+    if "rango_por_condicion" in info:
+        activo = condicion_activa(atributos)
+        r = info["rango_por_condicion"]
+        p["condicion"] = np.where(activo, "activa", "normal")
+        p["rango_min"] = p.pronostico + np.where(activo, r["activo"][0], r["normal"][0])
+        p["rango_max"] = p.pronostico + np.where(activo, r["activo"][1], r["normal"][1])
+    else:   # fichas antiguas: un solo rango
+        p["condicion"] = "única"
+        p["rango_min"] = p.pronostico + info["error_p05_m"]
+        p["rango_max"] = p.pronostico + info["error_p95_m"]
     # Confianza normal: todos los atributos disponibles (ventana de entrada completa)
     p["confianza_normal"] = atributos.notna().all(axis=1) & datos.nivel.notna()
     return p

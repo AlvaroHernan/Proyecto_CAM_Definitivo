@@ -10,3 +10,11 @@ textColor = "#1D1D1B"
 
 [server]
 headless = true
+
+[browser]
+# No enviar estadísticas de uso a Streamlit (Actividad 3.3)
+gatherUsageStats = false
+
+[client]
+# Oculta el botón «Deploy» y las opciones de desarrollador para quien usa el tablero
+toolbarMode = "viewer"

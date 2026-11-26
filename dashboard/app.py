@@ -1,4 +1,4 @@
-"""Dashboard de alertas tempranas · río Las Ceibas (Actividad 3.2).
+"""Dashboard de alertas tempranas · río Las Ceibas (Actividades 3.2 y 3.3).
 
 Ejecutar desde la carpeta raíz del repositorio:
 
@@ -72,6 +72,10 @@ def estilos():
   .regla-corhuila {{ height: 5px; background: {VERDE_CORHUILA}; border-radius: 3px; margin: 2px 0 14px 0; }}
   .pie-corhuila {{ color: {GRIS_TEXTO}; font-size: 0.85rem; border-top: 2px solid {VERDE_CORHUILA};
                    padding-top: 8px; margin-top: 28px; }}
+  /* Celular: título más pequeño para que el estado de la cuenca se vea sin desplazarse (RNF-07) */
+  @media (max-width: 640px) {{
+    .stMarkdown h1 {{ font-size: 1.6rem !important; line-height: 1.2 !important; }}
+  }}
 </style>""", unsafe_allow_html=True)
 
 
@@ -143,70 +147,144 @@ def avisos(estacion):
 # =====================================================================
 # Barra lateral: simulación y administración
 # =====================================================================
+def sincronizar_selector():
+    """Pone la fecha y la hora del selector «Ir a una fecha» en la hora simulada.
+
+    Se llama antes de dibujar los controles. Si la hora simulada cambió por los botones o por el
+    Play, el selector se actualiza; así nunca muestra una fecha vieja ni pierde la elección del
+    usuario (falla encontrada en las pruebas funcionales de la Actividad 3.3).
+    """
+    if st.session_state.pop("sincronizar_selector", False) or "fecha_ir" not in st.session_state:
+        st.session_state.fecha_ir = st.session_state.t.date()
+        st.session_state.hora_ir = st.session_state.t.hour
+
+
+def mover_hora(horas, primera, ultima):
+    st.session_state.t = min(max(st.session_state.t + pd.Timedelta(hours=horas), primera), ultima)
+    st.session_state.sincronizar_selector = True
+
+
+def ir_a_fecha(primera, ultima):
+    t = pd.Timestamp(st.session_state.fecha_ir) + pd.Timedelta(hours=st.session_state.hora_ir)
+    st.session_state.t = min(max(t, primera), ultima)
+    st.session_state.reproduciendo = False
+    st.session_state.sincronizar_selector = True
+
+
+def cambiar_reproduccion(valor):
+    st.session_state.reproduciendo = valor
+    st.session_state.sincronizar_selector = True
+
+
+CAMPOS_UMBRAL = {"amarillo": "am_", "naranja": "na_", "rojo": "ro_"}
+
+
+def registrar_cambio(estacion, umbral, anterior, nuevo):
+    """Historial de cambios de umbrales (RF-24): valor anterior, nuevo, autor, fecha y motivo."""
+    st.session_state.historial.append({
+        "Fecha del cambio": pd.Timestamp.now(tz="America/Bogota").strftime("%d/%m/%Y %H:%M"),
+        "Estación": motor.ESTACIONES.get(estacion, estacion),
+        "Umbral": umbral,
+        "Anterior": anterior,
+        "Nuevo": nuevo,
+        "Autor": "administrador",
+        "Motivo": st.session_state.get("motivo", "").strip() or "(sin motivo)",
+    })
+
+
+def umbral_editado(estacion, umbral):
+    clave = CAMPOS_UMBRAL[umbral] + estacion
+    anterior = st.session_state.umbrales[estacion][umbral]
+    nuevo = st.session_state[clave]
+    if nuevo != anterior:
+        st.session_state.umbrales[estacion][umbral] = nuevo
+        registrar_cambio(estacion, umbral.capitalize(), anterior, nuevo)
+
+
+def margen_editado():
+    anterior, nuevo = st.session_state.margen, st.session_state.margen_in
+    if nuevo != anterior:
+        st.session_state.margen = nuevo
+        registrar_cambio("", "Margen de cierre", anterior, nuevo)
+
+
+def restablecer_umbrales():
+    """Vuelve a los valores provisionales y también actualiza lo que muestran las casillas."""
+    for estacion, valores in motor.UMBRALES_PROVISIONALES.items():
+        for umbral, prefijo in CAMPOS_UMBRAL.items():
+            if st.session_state.umbrales[estacion][umbral] != valores[umbral]:
+                registrar_cambio(estacion, umbral.capitalize(), st.session_state.umbrales[estacion][umbral],
+                                 valores[umbral])
+            st.session_state[prefijo + estacion] = valores[umbral]
+    if st.session_state.margen != motor.MARGEN_CIERRE:
+        registrar_cambio("", "Margen de cierre", st.session_state.margen, motor.MARGEN_CIERRE)
+    st.session_state.umbrales = {k: dict(v) for k, v in motor.UMBRALES_PROVISIONALES.items()}
+    st.session_state.margen = st.session_state.margen_in = motor.MARGEN_CIERRE
+
+
+def cerrar_sesion():
+    st.session_state.autenticado = False
+    st.session_state.reproduciendo = False
+
+
 def barra_lateral(primera, ultima):
+    sincronizar_selector()
     st.sidebar.image(str(LOGO), width=130)
     st.sidebar.header("⏱️ Simulación en tiempo real")
     st.sidebar.caption("Reproduce los datos históricos como si llegaran en vivo, una hora a la vez.")
 
-    fecha = st.sidebar.date_input("Fecha de inicio", value=st.session_state.t.date(),
-                                  min_value=primera.date(), max_value=ultima.date(), format="DD/MM/YYYY")
-    hora_ini = st.sidebar.selectbox("Hora de inicio", range(24), index=st.session_state.t.hour,
-                                    format_func=lambda h: f"{h:02d}:00")
-    if st.sidebar.button("Ir a esa fecha", width="stretch"):
-        st.session_state.t = pd.Timestamp(fecha) + pd.Timedelta(hours=hora_ini)
-        st.session_state.reproduciendo = False
-        st.rerun()
+    st.sidebar.date_input("Fecha de inicio", key="fecha_ir", min_value=primera.date(), max_value=ultima.date(),
+                          format="DD/MM/YYYY")
+    st.sidebar.selectbox("Hora de inicio", range(24), key="hora_ir", format_func=lambda h: f"{h:02d}:00")
+    st.sidebar.button("Ir a esa fecha", width="stretch", on_click=ir_a_fecha, args=(primera, ultima))
 
     c1, c2, c3 = st.sidebar.columns(3)
-    if c1.button("⏮ −1 h", width="stretch"):
-        st.session_state.t -= pd.Timedelta(hours=1)
+    c1.button("⏮ −1 h", width="stretch", on_click=mover_hora, args=(-1, primera, ultima))
     if st.session_state.reproduciendo:
-        if c2.button("⏸ Pausa", width="stretch"):
-            st.session_state.reproduciendo = False
-            st.rerun()
-    elif c2.button("▶ Play", width="stretch", type="primary"):
-        st.session_state.reproduciendo = True
-        st.rerun()
-    if c3.button("+1 h ⏭", width="stretch"):
-        st.session_state.t += pd.Timedelta(hours=1)
+        c2.button("⏸ Pausa", width="stretch", on_click=cambiar_reproduccion, args=(False,))
+    else:
+        c2.button("▶ Play", width="stretch", type="primary", on_click=cambiar_reproduccion, args=(True,))
+    c3.button("+1 h ⏭", width="stretch", on_click=mover_hora, args=(1, primera, ultima))
 
-    st.session_state.paso = st.sidebar.select_slider(
-        "Velocidad (horas simuladas cada 2 segundos)", options=[1, 2, 3, 6, 12, 24], value=st.session_state.paso)
+    st.sidebar.select_slider("Velocidad (horas simuladas cada 2 segundos)", options=[1, 2, 3, 6, 12, 24], key="paso")
     st.session_state.t = min(max(st.session_state.t, primera), ultima)
 
     st.sidebar.divider()
     st.sidebar.header("⚙️ Administración de umbrales")
     st.sidebar.caption("Valores provisionales del Informe 3.1 (tabla 8). No son oficiales: "
                        "se ajustan aquí mientras la CAM define los definitivos.")
+    st.sidebar.text_input("Motivo del cambio (opcional)", key="motivo",
+                          placeholder="Ej.: acuerdo del taller con la CAM")
     for estacion, nombre in motor.ESTACIONES.items():
-        u = st.session_state.umbrales[estacion]
         with st.sidebar.expander(nombre):
-            u["amarillo"] = st.number_input("Amarillo (m sobre la base)", 0.05, 5.0, u["amarillo"], 0.01,
-                                            key=f"am_{estacion}", format="%.2f")
-            u["naranja"] = st.number_input("Naranja (m sobre la base)", 0.05, 5.0, u["naranja"], 0.01,
-                                           key=f"na_{estacion}", format="%.2f")
-            u["rojo"] = st.number_input("Rojo (nivel absoluto, m)", 0.1, 10.0, u["rojo"], 0.01,
-                                        key=f"ro_{estacion}", format="%.2f")
+            st.number_input("Amarillo (m sobre la base)", 0.05, 5.0, step=0.01, key=f"am_{estacion}",
+                            format="%.2f", on_change=umbral_editado, args=(estacion, "amarillo"))
+            st.number_input("Naranja (m sobre la base)", 0.05, 5.0, step=0.01, key=f"na_{estacion}",
+                            format="%.2f", on_change=umbral_editado, args=(estacion, "naranja"))
+            st.number_input("Rojo (nivel absoluto, m)", 0.1, 10.0, step=0.01, key=f"ro_{estacion}",
+                            format="%.2f", on_change=umbral_editado, args=(estacion, "rojo"))
+            u = st.session_state.umbrales[estacion]
             if u["naranja"] <= u["amarillo"]:
                 st.warning("El umbral naranja debería ser mayor que el amarillo.")
-    st.session_state.margen = st.sidebar.number_input(
-        "Margen de cierre (m)", 0.0, 0.5, st.session_state.margen, 0.01, format="%.2f",
+    st.sidebar.number_input(
+        "Margen de cierre (m)", 0.0, 0.5, step=0.01, format="%.2f", key="margen_in", on_change=margen_editado,
         help="Un aviso baja de nivel cuando el nivel observado y el pronosticado quedan por debajo de "
              "(umbral − margen) durante 3 horas seguidas.")
-    if st.sidebar.button("Restablecer valores provisionales", width="stretch"):
-        for clave in list(st.session_state):
-            if clave[:3] in ("am_", "na_", "ro_"):
-                del st.session_state[clave]
-        st.session_state.umbrales = {k: dict(v) for k, v in motor.UMBRALES_PROVISIONALES.items()}
-        st.session_state.margen = motor.MARGEN_CIERRE
-        st.rerun()
+    st.sidebar.button("Restablecer valores provisionales", width="stretch", on_click=restablecer_umbrales)
     st.sidebar.caption("Los cambios valen mientras la sesión esté abierta.")
 
+    historial = st.session_state.historial
+    with st.sidebar.expander(f"Historial de cambios ({len(historial)})"):
+        if historial:
+            tabla = pd.DataFrame(historial)
+            st.dataframe(tabla, hide_index=True, width="stretch")
+            st.download_button("Descargar historial (CSV)", tabla.to_csv(index=False).encode("utf-8-sig"),
+                               "historial_umbrales.csv", "text/csv", width="stretch")
+        else:
+            st.caption("Todavía no se ha cambiado ningún umbral en esta sesión.")
+
     st.sidebar.divider()
-    if st.sidebar.button("Cerrar sesión", width="stretch"):
-        st.session_state.autenticado = False
-        st.session_state.reproduciendo = False
-        st.rerun()
+    st.sidebar.button("Cerrar sesión", width="stretch", on_click=cerrar_sesion)
 
 
 # =====================================================================
@@ -355,6 +433,7 @@ def grafico_estacion(estacion, t, horas_atras):
     fig.update_yaxes(rangemode="tozero", row=2, col=1, gridcolor="#EEF1F4")
     fig.update_xaxes(range=[desde, futuro + pd.Timedelta(hours=1)], gridcolor="#EEF1F4", tickformat="%H:%M<br>%d/%m")
     fig.update_layout(height=520, margin=dict(l=10, r=10, t=40, b=10), hovermode="x unified",
+                      separators=",.",   # coma decimal también en los ejes (RNF-14)
                       legend=dict(orientation="h", y=-0.12, x=0, yanchor="top"), plot_bgcolor="white",
                       bargap=0.15)
     st.plotly_chart(fig, width="stretch")
@@ -376,8 +455,37 @@ def detalle(t):
     a2.metric("Lluvia 72 h", f"{num(tramo.iloc[-72:].sum(), 1)} mm")
     a3.metric("Lluvia 7 días", f"{num(tramo.iloc[-168:].sum(), 1)} mm")
     st.info("El pronóstico no incluye lluvia futura: una creciente causada por lluvia que todavía no ha caído "
-            "no se puede anticipar. El rango probable cubre el 90 % de los errores del modelo en 2024. "
-            "Este es un aviso técnico de apoyo a la decisión; no reemplaza la alerta oficial.", icon="ℹ️")
+            "no se puede anticipar. El rango probable cubre el 90 % de los errores del modelo en 2024, "
+            "calculado aparte para horas normales y para horas activas (con lluvia en las últimas 6 horas o "
+            "con el río a 10 cm o más sobre su base). Este es un aviso técnico de apoyo a la decisión; "
+            "no reemplaza la alerta oficial.", icon="ℹ️")
+    exportar_pronosticos(estacion, t, ventanas[ventana])
+
+
+def exportar_pronosticos(estacion, t, horas_atras):
+    """Descarga de los pronósticos de la ventana con la versión del modelo (RF-12, RF-23)."""
+    datos, pron, info = preparar(estacion)
+    a = avisos(estacion)
+    desde = t - pd.Timedelta(hours=horas_atras)
+    tabla = pd.DataFrame({
+        "fecha_hora": datos.loc[desde:t].index.strftime("%Y-%m-%d %H:%M"),
+        "estacion": motor.ESTACIONES[estacion],
+        "nivel_m": datos.nivel.loc[desde:t].round(3).to_numpy(),
+        "calidad_nivel": datos.calidad.loc[desde:t].to_numpy(),
+        "lluvia_mm": datos.lluvia.loc[desde:t].round(1).to_numpy(),
+        f"pronostico_{motor.HORIZONTE}h_m": pron.pronostico.loc[desde:t].round(3).to_numpy(),
+        "rango_min_m": pron.rango_min.loc[desde:t].round(3).to_numpy(),
+        "rango_max_m": pron.rango_max.loc[desde:t].round(3).to_numpy(),
+        "condicion_rango": pron.condicion.loc[desde:t].to_numpy(),
+        "confianza_normal": pron.confianza_normal.loc[desde:t].to_numpy(),
+        "aviso": [motor.NIVELES[c][0] for c in a.estado.loc[desde:t]],
+        "tipo_aviso": a.tipo.loc[desde:t].to_numpy(),
+        "version_modelo": info.get("version", ""),
+    })
+    st.download_button(f"Descargar datos, pronósticos y avisos de la ventana (CSV, {len(tabla)} horas)",
+                       tabla.to_csv(index=False).encode("utf-8-sig"),
+                       f"pronosticos_{estacion}_{t:%Y%m%d_%H%M}.csv", "text/csv")
+    st.caption(f"Versión del modelo: {info.get('version', '—')}")
 
 
 # =====================================================================
@@ -403,6 +511,11 @@ def vista_bitacora(t):
                "«Cómo empezó» indica si lo activó el nivel observado o el pronóstico del modelo.")
 
 
+def rango_texto(info, condicion):
+    r = info.get("rango_por_condicion", {}).get(condicion, [info["error_p05_m"], info["error_p95_m"]])
+    return f"{num(100 * r[0], 1)} a +{num(100 * r[1], 1)}"
+
+
 def vista_modelo():
     st.markdown(f"""
 **Modelo:** XGBoost (árboles de decisión con *boosting*), elegido en la Actividad 2.4 como el mejor en las dos
@@ -421,7 +534,8 @@ y se evaluó con 2025. Detalles en `models/README.md`.
                           "Error típico si se supone que no cambia (cm)": m.loc["Persistencia", "RMSE_cm"],
                           "Mejora (%)": m.loc["XGBoost", "mejora_vs_persistencia_%"],
                           "NSE": m.loc["XGBoost", "NSE"],
-                          "Rango probable (cm)": f"{num(100 * info['error_p05_m'], 1)} a +{num(100 * info['error_p95_m'], 1)}"})
+                          "Rango probable, horas normales (cm)": rango_texto(info, "normal"),
+                          "Rango probable, horas activas (cm)": rango_texto(info, "activo")})
     if filas:
         st.subheader(f"Desempeño en 2025 a {motor.HORIZONTE} h")
         st.dataframe(pd.DataFrame(filas), hide_index=True, width="stretch",
@@ -466,10 +580,18 @@ def iniciar_estado():
     valores = {
         "autenticado": False, "t": INICIO_SIMULACION, "reproduciendo": False, "paso": 1,
         "umbrales": {k: dict(v) for k, v in motor.UMBRALES_PROVISIONALES.items()},
-        "margen": motor.MARGEN_CIERRE,
+        "margen": motor.MARGEN_CIERRE, "historial": [],
     }
     for clave, valor in valores.items():
         st.session_state.setdefault(clave, valor)
+    # Las casillas de umbrales muestran siempre los valores en uso (Streamlit borra el estado de
+    # los controles que no se dibujan, por ejemplo mientras se muestra la pantalla de acceso).
+    # Por eso se vuelven a poner en cada ejecución, antes de dibujarlas; los callbacks de las
+    # casillas ya copiaron cualquier cambio del usuario a st.session_state.umbrales.
+    for estacion, u in st.session_state.umbrales.items():
+        for umbral, prefijo in CAMPOS_UMBRAL.items():
+            st.session_state[prefijo + estacion] = u[umbral]
+    st.session_state.margen_in = st.session_state.margen
 
 
 def main():
@@ -489,6 +611,7 @@ def main():
     def tablero():
         if st.session_state.reproduciendo:
             siguiente = st.session_state.t + pd.Timedelta(hours=st.session_state.paso)
+            st.session_state.sincronizar_selector = True
             if siguiente > ultima:          # se acabó la serie: detener y redibujar todo
                 st.session_state.reproduciendo = False
                 st.session_state.t = ultima
